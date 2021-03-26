@@ -65,6 +65,8 @@ class BBTreeNode():
 
 
     def first_noninteger(self):
+        """ Gets the first variable in the eq that is not an integer
+            It could be any noninteger but the first is easy"""
         for v in self.vars[:-1]:
             if v.value == None or abs(round(v.value) - float(v.value)) > 1e-4 :
                 return v
@@ -81,61 +83,44 @@ class BBTreeNode():
               bestnode_vars = the list of variables that create bestres
         '''
 
-
-        # print(self)
-        # print(self.vars)
-        # print(self.constraints)
-        # print(self.prob)
-        # quit()
-
         # these lines build up the initial problem and adds it to a heap
         root = self
         res = root.buildProblem().solve(solver='cvxopt')
-        heap = [(res, next(counter), root)]
         bestres = -1e20 # a small arbitrary initial best objective value
         bestnode_vars = root.vars # initialize bestnode_vars to the root vars
 
-        if self.is_integral():
-            return res.value, bestnode_vars
-
         bestres, bestnode_vars = recursive_solve(self, bestres, bestnode_vars)
 
-
-
-
-        # quit()
-        # print(bestres, bestnode_vars)
         return bestres, bestnode_vars
 
-def recursive_solve(obj, bestres, bestnode_vars):
 
-    # soln = obj.buildProblem().solve(solver='cvxopt')
+def recursive_solve(obj, bestres, bestnode_vars):
+    """ Recursively iterate through possible solutions, adding
+        constraints along the way until all variables are integer.
+        Return max all-integer solution """
+
     try:
         soln = obj.prob.solve(solver='cvxopt')
-        # print(soln.value)
 
     except pic.modeling.problem.SolutionFailure:
         # no valid solution
-        # print("FAILED SOLUTION")
         return 0, bestnode_vars
 
     if obj.is_integral(): # If everything is integer we are done
-        # print("IS INTEGRAL")
 
-        bestres = round(soln.value)
-        bestnode_vars = [round(i) for i in obj.vars]
-        # print(bestres, bestnode_vars)
-        return bestres, bestnode_vars
+        res = round(soln.value)
+        node_vars = [round(i) for i in obj.vars]
+        return res, node_vars
 
     if soln.value > bestres: # don't bother if the solution is worse
 
-        # print(soln.value)
+        branch_var = obj.first_noninteger() # Get a variable to branch on
 
-        branch_var = obj.first_noninteger()
-
+        # Take the upper and lower branch
         res, node_vars = recursive_solve(obj.branch_floor(branch_var), bestres, bestnode_vars)
         res2, node_vars2 = recursive_solve(obj.branch_ceil(branch_var), bestres, bestnode_vars)
 
+        # update best solution if necessary
         if res > bestres:
             bestres = res
             bestnode_vars = node_vars
