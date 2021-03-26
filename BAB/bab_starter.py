@@ -95,55 +95,16 @@ class BBTreeNode():
         bestres = -1e20 # a small arbitrary initial best objective value
         bestnode_vars = root.vars # initialize bestnode_vars to the root vars
 
-        # print(res)
-        # print(res.value)
-        # print(root.vars)
-        # print(heap)
-
-        #TODO: fill this part in
-
         if self.is_integral():
             return res.value, bestnode_vars
 
-        branch_var = self.first_noninteger()
-
-        # print(branch_var)
-
-        # print("BRANCH VAR" + str(type(branch_var)))
-
-        res, node_vars = recursive_solve(self.branch_floor(branch_var), bestres, bestnode_vars)
-        res2, node_vars2 = recursive_solve(self.branch_ceil(branch_var), bestres, bestnode_vars)
-
-
-        if res > bestres:
-            bestres = res
-            bestnode_vars = node_vars
-
-        if res2 > bestres:
-            bestres = res2
-            bestnode_vars = node_vars2
-        # res2, node_vars2 = recursive_solve(self, bestres, bestnode_vars)
-
-        # print("CONSTRAINTS")
-        # print(self.constraints)
-        # print("FLOOR CONSTRAINTS")
-        # new_obj = self.branch_floor(branch_var).constriants
-        # print(new_obj.constraints)
-
-
-
-
-
-
-
-        # recursive_search(root, )
-
+        bestres, bestnode_vars = recursive_solve(self, bestres, bestnode_vars)
 
 
 
 
         # quit()
-        print(bestres, bestnode_vars)
+        # print(bestres, bestnode_vars)
         return bestres, bestnode_vars
 
 def recursive_solve(obj, bestres, bestnode_vars):
@@ -151,25 +112,26 @@ def recursive_solve(obj, bestres, bestnode_vars):
     # soln = obj.buildProblem().solve(solver='cvxopt')
     try:
         soln = obj.prob.solve(solver='cvxopt')
+        # print(soln.value)
 
     except pic.modeling.problem.SolutionFailure:
         # no valid solution
+        # print("FAILED SOLUTION")
         return 0, bestnode_vars
-    # print(soln)
-    # print(soln.value)
-    # print(obj.vars)
 
     if obj.is_integral(): # If everything is integer we are done
         # print("IS INTEGRAL")
-        bestres = int(soln.value)
-        bestnode_vars = [int(i) for i in obj.vars]
+
+        bestres = round(soln.value)
+        bestnode_vars = [round(i) for i in obj.vars]
+        # print(bestres, bestnode_vars)
         return bestres, bestnode_vars
 
     if soln.value > bestres: # don't bother if the solution is worse
 
+        # print(soln.value)
+
         branch_var = obj.first_noninteger()
-        # print("BRANCH VAR")
-        # print(branch_var)
 
         res, node_vars = recursive_solve(obj.branch_floor(branch_var), bestres, bestnode_vars)
         res2, node_vars2 = recursive_solve(obj.branch_ceil(branch_var), bestres, bestnode_vars)
@@ -181,27 +143,6 @@ def recursive_solve(obj, bestres, bestnode_vars):
         if res2 > bestres:
             bestres = res2
             bestnode_vars = node_vars2
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        # for i in obj.vars:
-        #     print(i)
-    # print("SOLUTION")
-    # print(soln)
-
-    # quit()
 
     return bestres, bestnode_vars
 
